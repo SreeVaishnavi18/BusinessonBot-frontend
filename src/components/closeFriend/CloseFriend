@@ -1,0 +1,58 @@
+import React, { useContext } from "react";
+import axios from "axios";
+import { AuthContext } from "../../context/AuthContext";
+import "./closeFriend.css";
+
+function CloseFriend({ user }) {
+  const PF = process.env.REACT_APP_PUBLIC_FOLDER;
+  const { user: currentUser, dispatch } = useContext(AuthContext);
+
+  const handleFollow = async () => {
+    try {
+      await axios.put(`/users/${user._id}/follow`, {
+        userId: currentUser._id,
+      });
+      dispatch({ type: "FOLLOW", payload: user._id });
+      dispatch({ type: "UPDATE_FOLLOWINGS", payload: 1 });
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleUnfollow = async () => {
+    try {
+      await axios.put(`/users/${user._id}/unfollow`, {
+        userId: currentUser._id,
+      });
+      dispatch({ type: "UNFOLLOW", payload: user._id });
+      dispatch({ type: "UPDATE_FOLLOWINGS", payload: -1 });
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  return (
+    <li className="sidebarFriend">
+      <img
+        className="sidebarFriendImg"
+        src={PF + user.profilePicture}
+        alt={user.username}
+      />
+      <span className="sidebarFriendName">{user.username}</span>
+      {currentUser.username !== user.username && (
+        <button
+          className="sidebarFriendButton"
+          onClick={
+            user.followers?.includes(currentUser._id)
+              ? handleUnfollow
+              : handleFollow
+          }
+        >
+          {user.followers?.includes(currentUser._id) ? "Unfollow" : "Follow"}
+        </button>
+      )}
+    </li>
+  );
+}
+
+export default CloseFriend;
