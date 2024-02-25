@@ -1,0 +1,124 @@
+import "./profile.css";
+import Topbar from "../../components/topbar/Topbar";
+import Sidebar from "../../components/sidebar/Sidebar";
+import Feed from "../../components/feed/Feed";
+import Rightbar from "../../components/rightbar/Rightbar";
+import { useEffect, useState, useContext } from "react";
+import axios from "axios";
+import { useParams } from "react-router";
+import { AuthContext } from "../../context/AuthContext";
+
+export default function Profile() {
+  const PF = process.env.REACT_APP_PUBLIC_FOLDER;
+  const [user, setUser] = useState({});
+  const [followers, setFollowers] = useState(0);
+  const [following, setFollowing] = useState(0);
+  const [posts, setPosts] = useState([]);
+  const { user: currentUser, dispatch } = useContext(AuthContext);
+  const username = useParams().username;
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const res = await axios.get(`/users?username=${username}`);
+      setUser(res.data);
+      setFollowers(res.data.followers.length);
+      setFollowing(res.data.followings.length);
+    };
+    fetchUser();
+  }, [username]);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const res = await axios.get(`/posts/profile/${username}`);
+      setPosts(res.data);
+    };
+    fetchPosts();
+  }, [username]);
+
+  const handleFollow = async () => {
+    try {
+      await axios.put(`/users/${user._id}/follow`, {
+        userId: currentUser._id,
+      });
+      dispatch({ type: "FOLLOW", payload: user._id });
+      setFollowers(followers + 1);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleUnfollow = async () => {
+    try {
+      await axios.put(`/users/${user._id}/unfollow`, {
+        userId: currentUser._id,
+      });
+      dispatch({ type: "UNFOLLOW", payload: user._id });
+      setFollowers(followers - 1);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  return (
+    <>
+      <Topbar />
+      <div className="profile">
+        <Sidebar />
+        <div className="profileRight">
+          <div className="profileRightTop">
+            <div className="profileCover">
+              <img
+                className="profileCoverImg"
+                src={
+                  user.coverPicture
+                    ? PF + user.coverPicture
+                    : PF + "person/noCover.png"
+                }
+                alt=""
+              />
+              <img
+                className="profileUserImg"
+                src={
+                  user.profilePicture
+                    ? PF + user.profilePicture
+                    : PF + "person/noAvatar.png"
+                }
+                alt=""
+              />
+            </div>
+            <div className="profileInfo">
+              <h4 className="profileInfoName">{user.username}</h4>
+              <span className="profileInfoDesc">{user.desc}</span>
+              <div className="profileInfoStats">
+                <div className="profileInfoStat">
+                  <span className="profileInfoStatValue">{posts.length}</span>
+                  <span className="profileInfoStatKey">Posts</span>
+                </div>
+                <div className="profileInfoStat">
+                  <span className="profileInfoStatValue">{followers}</span>
+                  <span className="profileInfoStatKey">Followers</span>
+                </div>
+                <div className="profileInfoStat">
+                  <span className="profileInfoStatValue">{following}</span>
+                  <span className="profileInfoStatKey">Following</span>
+                </div>
+              </div>
+              {currentUser.username !== user.username && (
+                <button
+                  className="profileFollowButton"
+                  onClick={user.followers?.includes(currentUser._id) ? handleUnfollow : handleFollow}
+                >
+                  {user.followers?.includes(currentUser._id) ? "Unfollow" : "Follow"}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="profileRightBottom">
+            <Feed username={username} />
+            <Rightbar user={user} />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
